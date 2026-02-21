@@ -1,6 +1,7 @@
 node_modules/
 .env
 .env.bak
+.env.local
 firebase-service-account.json
 client/dist/
 client/node_modules/

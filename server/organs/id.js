@@ -10,14 +10,16 @@ Example:
 2. Create a React context provider for global theme
 3. Refactor the authentication middleware to use JWT`;
 
-        const response = await fetch("https://api.minimax.io/v1/chat/completions", {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://clawmni.local",
+                "X-Title": "Clawmni OS"
             },
             body: JSON.stringify({
-                "model": "MiniMax-M2.5",
+                "model": "minimax/MiniMax-M2.5",
                 "messages": [
                     { "role": "system", "content": systemPrompt },
                     { "role": "user", "content": `Goal: ${goal}` }
@@ -69,12 +71,14 @@ module.exports = function (db) {
         console.log(`[Id] Activated for ${REPO_OWNER}/${REPO_NAME}. BP is nominal. Batching 10-30 approaches for: ${shortGoalId}`);
         db.ref('system/organ_id_status').set(`Batch Ideating: ${shortGoalId}`);
 
-        // 1. Generate ideas via your AI API here...
-        let ideationContent = "Generated abstract ideas go here...";
-        if (process.env.OPENROUTER_API_KEY) {
-            console.log(`[Id] Triggering Minimax for ideation...`);
-            ideationContent = await triggerBrainstorming(newGoal, process.env.OPENROUTER_API_KEY);
+        // 1. Generate ideas via AI
+        if (!process.env.OPENROUTER_API_KEY) {
+            console.log("[Id] OPENROUTER_API_KEY missing. Skipping ideation.");
+            return;
         }
+
+        console.log(`[Id] Triggering Minimax for ideation...`);
+        const ideationContent = await triggerBrainstorming(newGoal, process.env.OPENROUTER_API_KEY);
 
         try {
             // Push generated ideas into Firebase
@@ -90,7 +94,7 @@ module.exports = function (db) {
 
             // Inject slight Dopamine and consume Fuel
             const dopaRef = db.ref('state/dopamine');
-            await dopaRef.transaction(current => (current || 0) + 5);
+            await dopaRef.transaction(current => Math.min((current || 0) + 5, 100));
             const fuelRef = db.ref('state/fuel_consumed');
             await fuelRef.transaction(current => (current || 0) + 1);
 
