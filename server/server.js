@@ -348,7 +348,37 @@ app.get('/api/github/issues', async (req, res) => {
     }
 });
 
-// 4i. Get Activity Log
+// 4i. Get User Settings
+app.get('/api/settings', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        const settingsSnap = await db.ref('config/settings').once('value');
+        const settings = settingsSnap.val() || { theme: 'dark', pulseRate: 1 };
+        res.json(settings);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4j. Update User Settings
+app.post('/api/settings', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        const { theme, pulseRate } = req.body;
+        const updates = {};
+        if (theme) updates.theme = theme;
+        if (pulseRate) updates.pulseRate = pulseRate;
+        
+        if (Object.keys(updates).length > 0) {
+            await db.ref('config/settings').update(updates);
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4k. Get Activity Log
 app.get('/api/activity', async (req, res) => {
     if (!db) return res.status(503).json({ error: "Firebase not initialized" });
     try {
