@@ -21,6 +21,7 @@ export default function Dashboard() {
     const [configInput, setConfigInput] = useState({ base_pulse_rate: '', fuel_limit: '', max_tasks: '' });
     const [ideas, setIdeas] = useState([]);
     const [expandedOrgans, setExpandedOrgans] = useState({});
+    const [settings, setSettings] = useState({ theme: 'dark' });
 
     // Sync config inputs when state loads
     useEffect(() => {
@@ -82,6 +83,12 @@ export default function Dashboard() {
                 if (activityRes.ok && isMounted) {
                     const activityData = await activityRes.json();
                     setActivityLog(activityData.activity || []);
+                }
+                // Also fetch settings
+                const settingsRes = await fetch(`${API_URL}/api/settings`);
+                if (settingsRes.ok && isMounted) {
+                    const settingsData = await settingsRes.json();
+                    setSettings(settingsData);
                 }
             } catch (err) {
                 console.error("Dashboard poll failed", err);
@@ -258,6 +265,20 @@ export default function Dashboard() {
         setExpandedOrgans(prev => ({ ...prev, [organ]: !prev[organ] }));
     };
 
+    const handleToggleTheme = async () => {
+        const newTheme = settings.theme === 'dark' ? 'light' : 'dark';
+        try {
+            await fetch(`${API_URL}/api/settings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ theme: newTheme })
+            });
+            setSettings(prev => ({ ...prev, theme: newTheme }));
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     return (
         <div className="min-h-screen p-6 max-w-7xl mx-auto flex flex-col gap-6">
 
@@ -270,6 +291,13 @@ export default function Dashboard() {
                     <p className="text-slate-400 mt-1">Real-time Autonomous Supervisor</p>
                 </div>
                 <div className="flex items-center space-x-4 bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">
+                    <button
+                        onClick={handleToggleTheme}
+                        className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded transition-colors"
+                        title={`Switch to ${settings.theme === 'dark' ? 'light' : 'dark'} mode`}
+                    >
+                        {settings.theme === 'dark' ? '☀️' : '🌙'}
+                    </button>
                     <div className="flex items-center">
                         <div className={`w-2 h-2 rounded-full mr-2 ${state.system.heart_running ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
                         <span className="text-sm font-medium text-slate-300">Heart: {state.system.heart_running ? 'Running' : 'Stopped'}</span>
