@@ -10,14 +10,16 @@ CRITICAL: You MUST respond ONLY with a valid JSON block containing:
 - "importance": "Low", "Medium", or "High".
 - "plan": A markdown string containing a concrete checklist of technical execution steps.`;
 
-        const response = await fetch("https://api.minimax.io/v1/chat/completions", {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://clawmni.local",
+                "X-Title": "Clawmni OS"
             },
             body: JSON.stringify({
-                "model": "MiniMax-M2.5",
+                "model": "minimax/MiniMax-M2.5",
                 "messages": [
                     { "role": "system", "content": systemPrompt },
                     { "role": "user", "content": ideationList }
@@ -132,7 +134,7 @@ module.exports = function (db) {
 
                     // Inject Dopamine and consume Fuel
                     const dopaRef = db.ref('state/dopamine');
-                    await dopaRef.transaction(current => (current || 0) + 10);
+                    await dopaRef.transaction(current => Math.min((current || 0) + 10, 100));
                     const fuelRef = db.ref('state/fuel_consumed');
                     await fuelRef.transaction(current => (current || 0) + 1);
 

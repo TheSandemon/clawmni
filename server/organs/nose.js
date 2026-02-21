@@ -16,14 +16,16 @@ Example:
             fileDocs += `--- File: ${f.path} ---\n${f.content}\n\n`;
         }
 
-        const response = await fetch("https://api.minimax.io/v1/chat/completions", {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://clawmni.local",
+                "X-Title": "Clawmni OS"
             },
             body: JSON.stringify({
-                "model": "MiniMax-M2.5",
+                "model": "minimax/MiniMax-M2.5",
                 "messages": [
                     { "role": "system", "content": systemPrompt },
                     { "role": "user", "content": fileDocs }

@@ -43,10 +43,11 @@ export default function Dashboard() {
         // Instead of raw firebase client setup right now, we will poll the backend for state proxy
         // In a production app you'd strictly use Firebase Web SDK here configured via an endpoint.
 
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
         const pollBackend = setInterval(async () => {
             try {
-                // We'll need to create a /api/state endpoint on the server.js to feed this dashboard
-                const res = await fetch('http://localhost:3001/api/state');
+                const res = await fetch(`${API_URL}/api/state`);
                 if (res.ok && isMounted) {
                     const data = await res.json();
                     setState(data);
@@ -62,11 +63,13 @@ export default function Dashboard() {
         };
     }, []);
 
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
     const handleSetGoal = async () => {
         if (!newGoalInput.trim()) return;
 
         try {
-            await fetch('http://localhost:3001/api/goal', {
+            await fetch(`${API_URL}/api/goal`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ goal: newGoalInput })
@@ -80,7 +83,7 @@ export default function Dashboard() {
     const handleSetRepo = async () => {
         if (!repoInput.owner || !repoInput.repo) return;
         try {
-            await fetch('http://localhost:3001/api/config/repo', {
+            await fetch(`${API_URL}/api/config/repo`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(repoInput)
@@ -95,7 +98,7 @@ export default function Dashboard() {
             const minutes = parseFloat(configInput.base_pulse_rate);
             const ms = Math.round(minutes * 60000); // Convert minutes back to ms for backend
 
-            await fetch('http://localhost:3001/api/config/settings', {
+            await fetch(`${API_URL}/api/config/settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

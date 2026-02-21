@@ -15,11 +15,13 @@ export default function Onboarding({ onComplete }) {
     const handleNext = () => setStep(s => s + 1);
     const handleBack = () => setStep(s => s - 1);
 
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
     const handleSubmit = async () => {
         setIsSubmitting(true);
         setError('');
         try {
-            const res = await fetch('http://localhost:3001/api/setup', {
+            const res = await fetch(`${API_URL}/api/setup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
