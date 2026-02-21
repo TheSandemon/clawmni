@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const fs = require('fs');
-const { startHeartbeat } = require('./heart');
+const { startHeartbeat, stopHeartbeat, restartHeartbeat } = require('./heart');
 
 const app = express();
 app.use(cors());
@@ -137,6 +137,7 @@ app.get('/api/state', async (req, res) => {
         res.json({
             system: {
                 heart_status: system.heart_status,
+                heart_running: system.heart_running ?? false,
                 status_message: system.status_message,
                 last_pulse: system.last_pulse
             },
@@ -189,6 +190,28 @@ app.post('/api/pulse/trigger', async (req, res) => {
         await db.ref('pulse').set(Date.now());
         await db.ref('pulse_execute').set(Date.now());
         res.json({ success: true, message: "Manual pulse triggered" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4c. Stop Heartbeat
+app.post('/api/heart/stop', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        stopHeartbeat(db);
+        res.json({ success: true, message: "Heartbeat stopped" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4d. Start Heartbeat
+app.post('/api/heart/start', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        restartHeartbeat(db);
+        res.json({ success: true, message: "Heartbeat started" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
