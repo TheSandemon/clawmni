@@ -372,6 +372,42 @@ export default function Dashboard() {
                 </div>
             </div>
 
+            {/* Quick Stats Bar */}
+            <div className="flex items-center justify-between bg-slate-900/50 border border-slate-800 rounded-lg px-4 py-2 text-xs">
+                <div className="flex items-center space-x-6">
+                    <div className="flex items-center">
+                        <span className="text-slate-500 mr-2">Fuel:</span>
+                        <span className="text-amber-400 font-medium">{Math.max(0, state.config.fuel_limit - state.chemistry.fuel_consumed)}/{state.config.fuel_limit}</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="text-slate-500 mr-2">Dopamine:</span>
+                        <span className="text-emerald-400 font-medium">{state.chemistry.dopamine}/100</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="text-slate-500 mr-2">Cortisol:</span>
+                        <span className="text-rose-400 font-medium">{state.chemistry.cortisol}/100</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="text-slate-500 mr-2">Issues:</span>
+                        <span className="text-blue-400 font-medium">{githubData.issues.length}</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="text-slate-500 mr-2">PRs:</span>
+                        <span className="text-purple-400 font-medium">{githubData.prs.length}</span>
+                    </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                    <div className="flex items-center">
+                        <span className="text-slate-500 mr-2">Ideas:</span>
+                        <span className="text-indigo-400 font-medium">{ideas.length}</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="text-slate-500 mr-2">Goals:</span>
+                        <span className="text-cyan-400 font-medium">{goalHistory.length}</span>
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Left Column: Neurochemistry & Globals */}
