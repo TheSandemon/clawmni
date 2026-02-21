@@ -59,6 +59,13 @@ module.exports = function (db) {
             console.log(`[Arms] Spawning ${numFingers} concurrent Fingers for tasks...`);
             db.ref('system/organ_arms_status').set(`Executing ${numFingers} Task(s) Simultaneoulsy`);
 
+            // Log activity
+            db.ref('system/activity').push({
+                type: 'execution',
+                message: `Spawning ${numFingers} fingers for task execution`,
+                timestamp: Date.now()
+            });
+
             // Spawn Concurrent Promises (Fingers)
             const fingerPromises = tasksToExecute.map(task => executeFinger(task, octokit, db, REPO_OWNER, REPO_NAME));
 
@@ -95,8 +102,15 @@ async function executeFinger(taskIssue, octokit, db, owner, repo) {
 
         if (filesToCommit && filesToCommit.length > 0) {
             console.log(`[Finger] Task #${taskIssue.number} generated ${filesToCommit.length} files. Creating Pull Request...`);
-            await createPullRequest(octokit, owner, repo, taskIssue.number, taskIssue.title, filesToCommit);
+            await createPullRequest(octokit, owner, repo, taskIssue.number, taskIssue.title, filesToCommit, db);
             console.log(`[Finger] Successfully opened PR for Task #${taskIssue.number}`);
+
+            // Log activity
+            db.ref('system/activity').push({
+                type: 'pr',
+                message: `Opened PR for task #${taskIssue.number}: ${taskIssue.title}`,
+                timestamp: Date.now()
+            });
 
             // Close the EGO TASK issue
             await octokit.issues.update({
@@ -174,7 +188,7 @@ Format: [{"path": "src/example.js", "content": "console.log('hello');"}]`;
 }
 
 // GitHub Action: Create Branch, Commit, and PR
-async function createPullRequest(octokit, owner, repo, taskId, taskTitle, files) {
+async function createPullRequest(octokit, owner, repo, taskId, taskTitle, files, db) {
     // 1. Get the default branch dynamically
     const { data: repoData } = await octokit.repos.get({ owner, repo });
     const defaultBranch = repoData.default_branch || 'main';

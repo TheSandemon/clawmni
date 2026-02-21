@@ -125,6 +125,13 @@ module.exports = function (db) {
 
                     console.log(`[Ego] Created new Task #${taskIssue.data.number} for idea: ${breakdown.selected_idea}`);
 
+                    // Log activity
+                    db.ref('system/activity').push({
+                        type: 'task',
+                        message: `Created task #${taskIssue.data.number}: ${breakdown.selected_idea}`,
+                        timestamp: Date.now()
+                    });
+
                     // Remove the selected idea from the Firebase pool
                     // Find the key corresponding to this idea to delete it
                     const selectedKey = ideaKeys.find(key => poolData[key] === breakdown.selected_idea);
