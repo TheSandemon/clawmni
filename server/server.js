@@ -257,6 +257,60 @@ app.post('/api/state/reset', async (req, res) => {
     }
 });
 
+// 4h. Get GitHub Issues and PRs
+app.get('/api/github/issues', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        const configSnap = await db.ref('config/target_repo').once('value');
+        const repoConfig = configSnap.val();
+        
+        if (!repoConfig || !repoConfig.owner || !repoConfig.repo) {
+            return res.json({ issues: [], prs: [], repo: null });
+        }
+
+        const { Octokit } = require('@octokit/rest');
+        const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
+        // Fetch issues (exclude PRs)
+        const { data: issues } = await octokit.issues.listForRepo({
+            owner: repoConfig.owner,
+            repo: repoConfig.repo,
+            state: 'open',
+            per_page: 20
+        });
+
+        // Fetch PRs
+        const { data: prs } = await octokit.pulls.list({
+            owner: repoConfig.owner,
+            repo: repoConfig.repo,
+            state: 'open',
+            per_page: 10
+        });
+
+        // Filter issues to exclude PRs
+        const realIssues = issues.filter(issue => !issue.pull_request);
+
+        res.json({
+            issues: realIssues.map(i => ({
+                number: i.number,
+                title: i.title,
+                labels: i.labels.map(l => l.name),
+                created_at: i.created_at
+            })),
+            prs: prs.map(pr => ({
+                number: pr.number,
+                title: pr.title,
+                state: pr.state,
+                created_at: pr.created_at
+            })),
+            repo: `${repoConfig.owner}/${repoConfig.repo}`
+        });
+    } catch (err) {
+        console.error("GitHub API error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 5. Config Target Repo
 app.post('/api/config/repo', async (req, res) => {
     if (!db) return res.status(503).json({ error: "Firebase not initialized" });
