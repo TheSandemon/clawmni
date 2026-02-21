@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Activity, BrainCircuit, ShieldAlert, CheckCircle2, Terminal, Github, Trash2, RefreshCw, GitPullRequest, AlertCircle } from 'lucide-react';
 
 export default function Dashboard() {
@@ -278,6 +278,42 @@ export default function Dashboard() {
             console.error(err);
         }
     };
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Ctrl/Cmd + P = Pulse
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                handleTriggerPulse();
+            }
+            // Ctrl/Cmd + S = Stop Heart
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                if (state.system.heart_running) {
+                    handleStopHeart();
+                } else {
+                    handleStartHeart();
+                }
+            }
+            // Ctrl/Cmd + R = Refresh all
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                fetchIdeas();
+                fetchGithubData();
+                fetchGoalHistory();
+                fetchActivity();
+            }
+            // Ctrl/Cmd + T = Toggle theme
+            if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+                e.preventDefault();
+                handleToggleTheme();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [state.system.heart_running]);
 
     return (
         <div className="min-h-screen p-6 max-w-7xl mx-auto flex flex-col gap-6">
@@ -807,6 +843,14 @@ export default function Dashboard() {
                     <div className="mt-4 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-xs text-slate-400">
                         <span className="text-indigo-400 font-bold">System Log &gt;</span> {state.system.status_message} <br />
                         Last Pulse: {new Date(state.system.last_pulse).toLocaleTimeString()}
+                    </div>
+
+                    {/* Keyboard Shortcuts Legend */}
+                    <div className="mt-2 text-[10px] text-slate-600 flex flex-wrap gap-3">
+                        <span><kbd className="bg-slate-800 px-1 rounded">Ctrl+P</kbd> Pulse</span>
+                        <span><kbd className="bg-slate-800 px-1 rounded">Ctrl+S</kbd> Start/Stop</span>
+                        <span><kbd className="bg-slate-800 px-1 rounded">Ctrl+R</kbd> Refresh</span>
+                        <span><kbd className="bg-slate-800 px-1 rounded">Ctrl+T</kbd> Theme</span>
                     </div>
 
                 </div>
