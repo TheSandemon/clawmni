@@ -1,11 +1,15 @@
 const { Octokit } = require('@octokit/rest');
 
 let heartbeatTimer = null;
+let dbInstance = null;
+let octokitInstance = null;
 
 function startHeartbeat(db) {
     if (heartbeatTimer) {
         clearTimeout(heartbeatTimer);
     }
+
+    dbInstance = db;
 
     // Load Organs (They will read target repo dynamically from Firebase and create their own Octokit instances)
     require('./organs/id')(db);
@@ -15,7 +19,7 @@ function startHeartbeat(db) {
 
     console.log("[Heart] Clawmni OS Heart is booting up...");
 
-    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+    octokitInstance = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
     // Ensure baseline config exists
     db.ref('config').update({
@@ -23,8 +27,31 @@ function startHeartbeat(db) {
         fuel_limit: 300
     });
 
+    // Set heart as running
+    db.ref('system/heart_running').set(true);
+
     // Start recursive heartbeat
-    beat(db, octokit);
+    beat(db, octokitInstance);
+}
+
+function stopHeartbeat(db) {
+    if (heartbeatTimer) {
+        clearTimeout(heartbeatTimer);
+        heartbeatTimer = null;
+    }
+    if (db) {
+        db.ref('system/heart_running').set(false);
+        db.ref('system/heart_status').set('Stopped');
+    }
+    console.log("[Heart] Heartbeat stopped.");
+}
+
+function restartHeartbeat(db) {
+    if (!dbInstance || !octokitInstance) {
+        console.log("[Heart] Cannot restart - no db instance");
+        return;
+    }
+    startHeartbeat(db);
 }
 
 async function beat(db, octokit) {
@@ -108,4 +135,4 @@ async function triggerPulse(db, octokit) {
     }
 }
 
-module.exports = { startHeartbeat };
+module.exports = { startHeartbeat, stopHeartbeat, restartHeartbeat };

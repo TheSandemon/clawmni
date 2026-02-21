@@ -123,6 +123,28 @@ export default function Dashboard() {
         }
     };
 
+    const handleStopHeart = async () => {
+        try {
+            await fetch(`${API_URL}/api/heart/stop`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleStartHeart = async () => {
+        try {
+            await fetch(`${API_URL}/api/heart/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     return (
         <div className="min-h-screen p-6 max-w-7xl mx-auto flex flex-col gap-6">
 
@@ -136,20 +158,40 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center space-x-4 bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">
                     <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full mr-2 ${state.system.heart_status.includes('Beating') ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
-                        <span className="text-sm font-medium text-slate-300">Heartbeat: {state.system.heart_status}</span>
+                        <div className={`w-2 h-2 rounded-full mr-2 ${state.system.heart_running ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
+                        <span className="text-sm font-medium text-slate-300">Heart: {state.system.heart_running ? 'Running' : 'Stopped'}</span>
                     </div>
                     <div className="text-xs text-slate-500 border-l border-slate-700 pl-4 flex flex-col">
                         <span>Base Pulse: {state.config.base_pulse_rate ? Math.round(state.config.base_pulse_rate / 60000) : 1} min</span>
                         <span className="text-indigo-400">BP: {parseFloat(state.chemistry.blood_pressure).toFixed(2)}x</span>
                     </div>
-                    <button
-                        onClick={handleTriggerPulse}
-                        className="ml-2 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded transition-colors"
-                        title="Trigger manual pulse now"
-                    >
-                        Pulse Now
-                    </button>
+                    <div className="flex space-x-1">
+                        {state.system.heart_running ? (
+                            <button
+                                onClick={handleStopHeart}
+                                className="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded transition-colors"
+                                title="Stop heartbeat"
+                            >
+                                Stop
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleStartHeart}
+                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded transition-colors"
+                                title="Start heartbeat"
+                            >
+                                Start
+                            </button>
+                        )}
+                        <button
+                            onClick={handleTriggerPulse}
+                            className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded transition-colors"
+                            title="Trigger manual pulse now"
+                        >
+                            Pulse
+                        </button>
+                    </div>
+                </div>
                 </div>
             </div>
 
