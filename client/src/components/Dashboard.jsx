@@ -1,0 +1,373 @@
+import { useState, useEffect } from 'react';
+import { Activity, BrainCircuit, ShieldAlert, CheckCircle2, Terminal, Github } from 'lucide-react';
+
+export default function Dashboard() {
+    const [db, setDb] = useState(null);
+    const [state, setState] = useState({
+        system: { heart_status: 'Offline', status_message: 'Connecting to bloodstream...', last_pulse: 0 },
+        organs: { id: 'Offline', ego: 'Offline', arms: 'Offline', nose: 'Offline' },
+        chemistry: { cortisol: 0, dopamine: 0, blood_pressure: 1.0, fuel_consumed: 0, open_issues: 0 },
+        goals: { current: '' },
+        config: { target_repo: { owner: '', repo: '' }, base_pulse_rate: 60000, fuel_limit: 300, max_tasks: 1 }
+    });
+
+    const [newGoalInput, setNewGoalInput] = useState('');
+    const [repoInput, setRepoInput] = useState({ owner: '', repo: '' });
+    const [configInput, setConfigInput] = useState({ base_pulse_rate: '', fuel_limit: '', max_tasks: '' });
+
+    // Sync config inputs when state loads
+    useEffect(() => {
+        if (state.config.base_pulse_rate && !configInput.base_pulse_rate) {
+            setConfigInput({
+                base_pulse_rate: Math.round(state.config.base_pulse_rate / 60000), // Convert ms to minutes for frontend display
+                fuel_limit: state.config.fuel_limit,
+                max_tasks: state.config.max_tasks || 1
+            });
+        }
+    }, [state.config]);
+
+    useEffect(() => {
+        // We need to fetch the firebase config from the server to initialize the client DB connection cleanly.
+        // For demo/simplicity, we can just hit our local Express API or initialize from env if available.
+        // Because Firebase JS SDK uses standard config (unlike Admin SDK), we would normally pass the web config.
+        // However, since the user already gave the backend their service account and URL, 
+        // the cleanest way to do this without writing a full Firebase Web Config initializer
+        // is to poll the express server, or we can just initialize Firebase client with the Database URL.
+
+        // Attempting direct client SDK connection using just URL (works if rules are open temporarily, 
+        // or we proxy it through the Express Server. For real-time, proxying through Express via Server-Sent-Events is safer.
+        // Below is a polling fallback for the demo if Firebase client config isn't fully set up for the frontend yet.
+
+        let isMounted = true;
+
+        // Instead of raw firebase client setup right now, we will poll the backend for state proxy
+        // In a production app you'd strictly use Firebase Web SDK here configured via an endpoint.
+
+        const pollBackend = setInterval(async () => {
+            try {
+                // We'll need to create a /api/state endpoint on the server.js to feed this dashboard
+                const res = await fetch('http://localhost:3001/api/state');
+                if (res.ok && isMounted) {
+                    const data = await res.json();
+                    setState(data);
+                }
+            } catch (err) {
+                console.error("Dashboard poll failed", err);
+            }
+        }, 2000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(pollBackend);
+        };
+    }, []);
+
+    const handleSetGoal = async () => {
+        if (!newGoalInput.trim()) return;
+
+        try {
+            await fetch('http://localhost:3001/api/goal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ goal: newGoalInput })
+            });
+            setNewGoalInput('');
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleSetRepo = async () => {
+        if (!repoInput.owner || !repoInput.repo) return;
+        try {
+            await fetch('http://localhost:3001/api/config/repo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(repoInput)
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleSetConfig = async () => {
+        try {
+            const minutes = parseFloat(configInput.base_pulse_rate);
+            const ms = Math.round(minutes * 60000); // Convert minutes back to ms for backend
+
+            await fetch('http://localhost:3001/api/config/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    base_pulse_rate: ms,
+                    fuel_limit: parseInt(configInput.fuel_limit, 10),
+                    max_tasks: parseInt(configInput.max_tasks, 10)
+                })
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    return (
+        <div className="min-h-screen p-6 max-w-7xl mx-auto flex flex-col gap-6">
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-white flex items-center">
+                        <Terminal className="w-8 h-8 mr-3 text-indigo-400" /> Clawmni OS
+                    </h1>
+                    <p className="text-slate-400 mt-1">Real-time Autonomous Supervisor</p>
+                </div>
+                <div className="flex items-center space-x-4 bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">
+                    <div className="flex items-center">
+                        <div className={`w-2 h-2 rounded-full mr-2 ${state.system.heart_status.includes('Beating') ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
+                        <span className="text-sm font-medium text-slate-300">Heartbeat: {state.system.heart_status}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 border-l border-slate-700 pl-4 flex flex-col">
+                        <span>Base Pulse: {state.config.base_pulse_rate ? Math.round(state.config.base_pulse_rate / 60000) : 1} min</span>
+                        <span className="text-indigo-400">BP: {parseFloat(state.chemistry.blood_pressure).toFixed(2)}x</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                {/* Left Column: Neurochemistry & Globals */}
+                <div className="flex flex-col gap-6">
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+                        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+                            <Activity className="w-4 h-4 mr-2" />
+                            Neurochemistry
+                        </h2>
+
+                        <div className="space-y-6">
+                            <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-violet-400 font-medium flex items-center"><Activity className="w-4 h-4 mr-1" /> Blood Pressure (Throttle)</span>
+                                    <span className="text-slate-300">{parseFloat(state.chemistry.blood_pressure).toFixed(2)} / 3.0</span>
+                                </div>
+                                <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-violet-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min((state.chemistry.blood_pressure / 3.0) * 100, 100)}%` }}></div>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">Balances {state.chemistry.open_issues} Open Issues vs remaining API Fuel.</p>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-amber-400 font-medium flex items-center"><Terminal className="w-4 h-4 mr-1" /> API Fuel (Prompts / 5 hours)</span>
+                                    <span className="text-slate-300">{state.config.fuel_limit - state.chemistry.fuel_consumed} / {state.config.fuel_limit}</span>
+                                </div>
+                                <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${((state.config.fuel_limit - state.chemistry.fuel_consumed) / state.config.fuel_limit) * 100}%` }}></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-rose-400 font-medium flex items-center"><ShieldAlert className="w-4 h-4 mr-1" /> Cortisol (Stress/Error)</span>
+                                    <span className="text-slate-300">{state.chemistry.cortisol}/100</span>
+                                </div>
+                                <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-rose-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min(state.chemistry.cortisol, 100)}%` }}></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-emerald-400 font-medium flex items-center"><CheckCircle2 className="w-4 h-4 mr-1" /> Dopamine (Success)</span>
+                                    <span className="text-slate-300">{state.chemistry.dopamine}/100</span>
+                                </div>
+                                <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min(state.chemistry.dopamine, 100)}%` }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+                        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+                            <Github className="w-4 h-4 mr-2" /> System Configuration
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Target Repository</label>
+                                <div className="flex space-x-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Owner"
+                                        value={repoInput.owner}
+                                        onChange={e => setRepoInput({ ...repoInput, owner: e.target.value })}
+                                        className="w-1/2 bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Repo"
+                                        value={repoInput.repo}
+                                        onChange={e => setRepoInput({ ...repoInput, repo: e.target.value })}
+                                        className="w-1/2 bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                                    />
+                                </div>
+                                <button onClick={handleSetRepo} className="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 rounded-lg text-xs transition-colors border border-slate-700">
+                                    Update Target
+                                </button>
+                                {state.config?.target_repo?.owner && (
+                                    <div className="mt-2 text-xs font-semibold text-indigo-400">Current: {state.config.target_repo.owner}/{state.config.target_repo.repo}</div>
+                                )}
+                            </div>
+
+                            <div className="border-t border-slate-800 pt-4">
+                                <label className="text-xs text-slate-500 mb-1 block">Heart & Fuel Throttle</label>
+                                <div className="flex space-x-2">
+                                    <div className="w-1/3">
+                                        <label className="text-[10px] text-slate-600">Base Pulse (Minutes)</label>
+                                        <input
+                                            type="number"
+                                            value={configInput.base_pulse_rate}
+                                            onChange={e => setConfigInput({ ...configInput, base_pulse_rate: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                                        />
+                                    </div>
+                                    <div className="w-1/3">
+                                        <label className="text-[10px] text-slate-600">API Fuel Limit</label>
+                                        <input
+                                            type="number"
+                                            value={configInput.fuel_limit}
+                                            onChange={e => setConfigInput({ ...configInput, fuel_limit: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                                        />
+                                    </div>
+                                    <div className="w-1/3">
+                                        <label className="text-[10px] text-slate-600">Max Tasks Allowed</label>
+                                        <input
+                                            type="number"
+                                            value={configInput.max_tasks}
+                                            onChange={e => setConfigInput({ ...configInput, max_tasks: e.target.value })}
+                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                                        />
+                                    </div>
+                                </div>
+                                <button onClick={handleSetConfig} className="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 rounded-lg text-xs transition-colors border border-slate-700">
+                                    Apply Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex-grow">
+                        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Command Input (Id)</h2>
+                        <p className="text-xs text-slate-500 mb-4">Inject a high-level abstract goal into the bloodstream.</p>
+                        <textarea
+                            value={newGoalInput}
+                            onChange={e => setNewGoalInput(e.target.value)}
+                            placeholder="E.g., Design a new landing page for the gallery with a dark theme..."
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors resize-none h-32"
+                        />
+                        <button
+                            onClick={handleSetGoal}
+                            className="w-full mt-3 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            Inject Goal
+                        </button>
+
+                        {state.goals.current && (
+                            <div className="mt-4 p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg">
+                                <p className="text-xs font-semibold text-indigo-400 mb-1">Active Goal:</p>
+                                <p className="text-sm text-slate-300 break-words">{state.goals.current}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right Column: Organs */}
+                <div className="lg:col-span-2 flex flex-col gap-4">
+                    <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center mt-2">
+                        <BrainCircuit className="w-4 h-4 mr-2" />
+                        Organ Status Monitor
+                    </h2>
+                    <p className="text-sm text-slate-500 mb-2">Systems awaken based on chemical pulses and specific Firebase triggers.</p>
+
+                    {/* THE ID */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-200">The Id</h3>
+                            <p className="text-sm text-slate-400">Divergent Ideation & Abstraction</p>
+                        </div>
+                        <div className="text-right">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.id === 'Idle' || state.organs.id === 'Offline'
+                                ? 'bg-slate-800 border-slate-700 text-slate-400'
+                                : state.organs.id.includes('Error')
+                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                    : 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 animate-pulse'
+                                }`}>
+                                {state.organs.id}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* THE EGO */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-200">The Ego</h3>
+                            <p className="text-sm text-slate-400">Executive Planning & Triaging</p>
+                        </div>
+                        <div className="text-right">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.ego === 'Idle' || state.organs.ego === 'Offline'
+                                ? 'bg-slate-800 border-slate-700 text-slate-400'
+                                : state.organs.ego.includes('Error')
+                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                    : 'bg-blue-500/20 border-blue-500/50 text-blue-300 animate-pulse'
+                                }`}>
+                                {state.organs.ego}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* THE ARMS */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-200">The Arms <span className="text-xs text-slate-500 font-normal ml-2">(Powered by MiniMax m2.5)</span></h3>
+                            <p className="text-sm text-slate-400">Task Decomposition & Coding</p>
+                        </div>
+                        <div className="text-right">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.arms === 'Idle' || state.organs.arms === 'Offline'
+                                ? 'bg-slate-800 border-slate-700 text-slate-400'
+                                : state.organs.arms.includes('Error')
+                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                    : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 animate-pulse'
+                                }`}>
+                                {state.organs.arms}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* THE NOSE */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-200">The Nose</h3>
+                            <p className="text-sm text-slate-400">Codebase Auditor & Reviewer</p>
+                        </div>
+                        <div className="text-right">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.nose === 'Idle' || state.organs.nose === 'Offline'
+                                ? 'bg-slate-800 border-slate-700 text-slate-400'
+                                : state.organs.nose.includes('Error')
+                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                    : 'bg-amber-500/20 border-amber-500/50 text-amber-300 animate-pulse'
+                                }`}>
+                                {state.organs.nose}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-xs text-slate-400">
+                        <span className="text-indigo-400 font-bold">System Log &gt;</span> {state.system.status_message} <br />
+                        Last Pulse: {new Date(state.system.last_pulse).toLocaleTimeString()}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+}
