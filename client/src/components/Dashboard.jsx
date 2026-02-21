@@ -5,6 +5,7 @@ export default function Dashboard() {
     const [db, setDb] = useState(null);
     const [ideas, setIdeas] = useState([]);
     const [githubData, setGithubData] = useState({ issues: [], prs: [], repo: null });
+    const [goalHistory, setGoalHistory] = useState([]);
     const [state, setState] = useState({
         system: { heart_status: 'Offline', status_message: 'Connecting to bloodstream...', last_pulse: 0 },
         organs: { id: 'Offline', ego: 'Offline', arms: 'Offline', nose: 'Offline' },
@@ -66,6 +67,12 @@ export default function Dashboard() {
                 if (ghRes.ok && isMounted) {
                     const ghData = await ghRes.json();
                     setGithubData(ghData);
+                }
+                // Also fetch goal history
+                const historyRes = await fetch(`${API_URL}/api/goals/history`);
+                if (historyRes.ok && isMounted) {
+                    const historyData = await historyRes.json();
+                    setGoalHistory(historyData.history || []);
                 }
             } catch (err) {
                 console.error("Dashboard poll failed", err);
@@ -201,6 +208,16 @@ export default function Dashboard() {
                 const data = await res.json();
                 setGithubData(data);
             }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchGoalHistory = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/goals/history`);
+            const data = await res.json();
+            setGoalHistory(data.history || []);
         } catch (err) {
             console.error(err);
         }
@@ -401,6 +418,34 @@ export default function Dashboard() {
                                 <p className="text-xs font-semibold text-indigo-400 mb-1">Active Goal:</p>
                                 <p className="text-sm text-slate-300 break-words">{state.goals.current}</p>
                             </div>
+                        )}
+                    </div>
+
+                    {/* Goal History */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Goal History ({goalHistory.length})</h2>
+                            <button
+                                onClick={fetchGoalHistory}
+                                className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded transition-colors"
+                                title="Refresh history"
+                            >
+                                <RefreshCw className="w-3 h-3" />
+                            </button>
+                        </div>
+                        {goalHistory.length === 0 ? (
+                            <p className="text-xs text-slate-500">No goal history yet</p>
+                        ) : (
+                            <ul className="space-y-2 max-h-40 overflow-y-auto">
+                                {goalHistory.slice(0, 10).map((goal, idx) => (
+                                    <li key={goal.id || idx} className="text-xs text-slate-400 bg-slate-950 p-2 rounded border border-slate-800">
+                                        <span className="text-slate-500">
+                                            {new Date(goal.timestamp).toLocaleString()}
+                                        </span>
+                                        <p className="text-slate-300 mt-1">{goal.text}</p>
+                                    </li>
+                                ))}
+                            </ul>
                         )}
                     </div>
 

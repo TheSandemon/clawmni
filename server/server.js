@@ -176,8 +176,29 @@ app.post('/api/goal', async (req, res) => {
         const { goal } = req.body;
         if (goal) {
             await db.ref('goals/current').set(goal);
+            // Also add to history
+            await db.ref('goals/history').push({
+                text: goal,
+                timestamp: Date.now()
+            });
         }
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4a. Get Goal History
+app.get('/api/goals/history', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        const historySnap = await db.ref('goals/history').once('value');
+        const history = historySnap.val() || {};
+        // Convert to array sorted by timestamp descending
+        const historyList = Object.entries(history)
+            .map(([key, value]) => ({ id: key, ...value }))
+            .sort((a, b) => b.timestamp - a.timestamp);
+        res.json({ history: historyList });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
