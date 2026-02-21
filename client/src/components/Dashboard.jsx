@@ -10,6 +10,7 @@ export default function Dashboard() {
     const [state, setState] = useState({
         system: { heart_status: 'Offline', status_message: 'Connecting to bloodstream...', last_pulse: 0 },
         organs: { id: 'Offline', ego: 'Offline', arms: 'Offline', nose: 'Offline' },
+        organStats: { id: {}, ego: {}, arms: {}, nose: {} },
         chemistry: { cortisol: 0, dopamine: 0, blood_pressure: 1.0, fuel_consumed: 0, open_issues: 0 },
         goals: { current: '' },
         config: { target_repo: { owner: '', repo: '' }, base_pulse_rate: 60000, fuel_limit: 300, max_tasks: 1 }
@@ -19,6 +20,7 @@ export default function Dashboard() {
     const [repoInput, setRepoInput] = useState({ owner: '', repo: '' });
     const [configInput, setConfigInput] = useState({ base_pulse_rate: '', fuel_limit: '', max_tasks: '' });
     const [ideas, setIdeas] = useState([]);
+    const [expandedOrgans, setExpandedOrgans] = useState({});
 
     // Sync config inputs when state loads
     useEffect(() => {
@@ -250,6 +252,10 @@ export default function Dashboard() {
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const toggleOrganExpand = (organ) => {
+        setExpandedOrgans(prev => ({ ...prev, [organ]: !prev[organ] }));
     };
 
     return (
@@ -645,75 +651,129 @@ export default function Dashboard() {
                     <p className="text-sm text-slate-500 mb-2">Systems awaken based on chemical pulses and specific Firebase triggers.</p>
 
                     {/* THE ID */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-200">The Id</h3>
-                            <p className="text-sm text-slate-400">Divergent Ideation & Abstraction</p>
+                    <div 
+                        className="bg-slate-900 border border-slate-800 rounded-xl p-5 cursor-pointer hover:border-indigo-500/50 transition-colors"
+                        onClick={() => toggleOrganExpand('id')}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-200">The Id</h3>
+                                <p className="text-sm text-slate-400">Divergent Ideation & Abstraction</p>
+                            </div>
+                            <div className="text-right">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.id === 'Idle' || state.organs.id === 'Offline'
+                                    ? 'bg-slate-800 border-slate-700 text-slate-400'
+                                    : state.organs.id.includes('Error')
+                                        ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                        : 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 animate-pulse'
+                                    }`}>
+                                    {state.organs.id}
+                                </span>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.id === 'Idle' || state.organs.id === 'Offline'
-                                ? 'bg-slate-800 border-slate-700 text-slate-400'
-                                : state.organs.id.includes('Error')
-                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                                    : 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 animate-pulse'
-                                }`}>
-                                {state.organs.id}
-                            </span>
-                        </div>
+                        {expandedOrgans.id && (
+                            <div className="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-400">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>Ideations: {state.organStats?.id?.total_ideations || 0}</div>
+                                    <div>Ideas Generated: {state.organStats?.id?.ideas_generated || 0}</div>
+                                    <div className="col-span-2">Last Active: {state.organStats?.id?.last_active ? new Date(state.organStats.id.last_active).toLocaleString() : 'Never'}</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* THE EGO */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-200">The Ego</h3>
-                            <p className="text-sm text-slate-400">Executive Planning & Triaging</p>
+                    <div 
+                        className="bg-slate-900 border border-slate-800 rounded-xl p-5 cursor-pointer hover:border-blue-500/50 transition-colors"
+                        onClick={() => toggleOrganExpand('ego')}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-200">The Ego</h3>
+                                <p className="text-sm text-slate-400">Executive Planning & Triaging</p>
+                            </div>
+                            <div className="text-right">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.ego === 'Idle' || state.organs.ego === 'Offline'
+                                    ? 'bg-slate-800 border-slate-700 text-slate-400'
+                                    : state.organs.ego.includes('Error')
+                                        ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                        : 'bg-blue-500/20 border-blue-500/50 text-blue-300 animate-pulse'
+                                    }`}>
+                                    {state.organs.ego}
+                                </span>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.ego === 'Idle' || state.organs.ego === 'Offline'
-                                ? 'bg-slate-800 border-slate-700 text-slate-400'
-                                : state.organs.ego.includes('Error')
-                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                                    : 'bg-blue-500/20 border-blue-500/50 text-blue-300 animate-pulse'
-                                }`}>
-                                {state.organs.ego}
-                            </span>
-                        </div>
+                        {expandedOrgans.ego && (
+                            <div className="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-400">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>Tasks Created: {state.organStats?.ego?.tasks_created || 0}</div>
+                                    <div className="col-span-2">Last Active: {state.organStats?.ego?.last_active ? new Date(state.organStats.ego.last_active).toLocaleString() : 'Never'}</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* THE ARMS */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-200">The Arms <span className="text-xs text-slate-500 font-normal ml-2">(Powered by MiniMax m2.5)</span></h3>
-                            <p className="text-sm text-slate-400">Task Decomposition & Coding</p>
+                    <div 
+                        className="bg-slate-900 border border-slate-800 rounded-xl p-5 cursor-pointer hover:border-emerald-500/50 transition-colors"
+                        onClick={() => toggleOrganExpand('arms')}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-200">The Arms <span className="text-xs text-slate-500 font-normal ml-2">(Powered by MiniMax m2.5)</span></h3>
+                                <p className="text-sm text-slate-400">Task Decomposition & Coding</p>
+                            </div>
+                            <div className="text-right">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.arms === 'Idle' || state.organs.arms === 'Offline'
+                                    ? 'bg-slate-800 border-slate-700 text-slate-400'
+                                    : state.organs.arms.includes('Error')
+                                        ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                        : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 animate-pulse'
+                                    }`}>
+                                    {state.organs.arms}
+                                </span>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.arms === 'Idle' || state.organs.arms === 'Offline'
-                                ? 'bg-slate-800 border-slate-700 text-slate-400'
-                                : state.organs.arms.includes('Error')
-                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                                    : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 animate-pulse'
-                                }`}>
-                                {state.organs.arms}
-                            </span>
-                        </div>
+                        {expandedOrgans.arms && (
+                            <div className="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-400">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>Executions: {state.organStats?.arms?.executions || 0}</div>
+                                    <div>PRs Opened: {state.organStats?.arms?.prs_opened || 0}</div>
+                                    <div className="col-span-2">Last Active: {state.organStats?.arms?.last_active ? new Date(state.organStats.arms.last_active).toLocaleString() : 'Never'}</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* THE NOSE */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-200">The Nose</h3>
-                            <p className="text-sm text-slate-400">Codebase Auditor & Reviewer</p>
+                    <div 
+                        className="bg-slate-900 border border-slate-800 rounded-xl p-5 cursor-pointer hover:border-amber-500/50 transition-colors"
+                        onClick={() => toggleOrganExpand('nose')}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-200">The Nose</h3>
+                                <p className="text-sm text-slate-400">Codebase Auditor & Reviewer</p>
+                            </div>
+                            <div className="text-right">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.nose === 'Idle' || state.organs.nose === 'Offline'
+                                    ? 'bg-slate-800 border-slate-700 text-slate-400'
+                                    : state.organs.nose.includes('Error')
+                                        ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                                        : 'bg-amber-500/20 border-amber-500/50 text-amber-300 animate-pulse'
+                                    }`}>
+                                    {state.organs.nose}
+                                </span>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${state.organs.nose === 'Idle' || state.organs.nose === 'Offline'
-                                ? 'bg-slate-800 border-slate-700 text-slate-400'
-                                : state.organs.nose.includes('Error')
-                                    ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                                    : 'bg-amber-500/20 border-amber-500/50 text-amber-300 animate-pulse'
-                                }`}>
-                                {state.organs.nose}
-                            </span>
-                        </div>
+                        {expandedOrgans.nose && (
+                            <div className="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-400">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>Audits Run: {state.organStats?.nose?.audits_run || 0}</div>
+                                    <div className="col-span-2">Last Active: {state.organStats?.nose?.last_active ? new Date(state.organStats.nose.last_active).toLocaleString() : 'Never'}</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-4 bg-slate-950 border border-slate-800 rounded-lg p-4 font-mono text-xs text-slate-400">

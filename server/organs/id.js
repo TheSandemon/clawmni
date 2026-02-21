@@ -99,6 +99,14 @@ module.exports = function (db) {
                 timestamp: Date.now()
             });
 
+            // Update organ stats
+            const now = Date.now();
+            await db.ref('system/organs/id').update({
+                last_active: now
+            });
+            await db.ref('system/organs/id/total_ideations').transaction(current => (current || 0) + 1);
+            await db.ref('system/organs/id/ideas_generated').transaction(current => (current || 0) + ideasList.length);
+
             // Inject slight Dopamine and consume Fuel
             const dopaRef = db.ref('state/dopamine');
             await dopaRef.transaction(current => Math.min((current || 0) + 5, 100));

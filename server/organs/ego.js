@@ -132,6 +132,10 @@ module.exports = function (db) {
                         timestamp: Date.now()
                     });
 
+                    // Update organ stats
+                    await db.ref('system/organs/ego').update({ last_active: Date.now() });
+                    await db.ref('system/organs/ego/tasks_created').transaction(current => (current || 0) + 1);
+
                     // Remove the selected idea from the Firebase pool
                     // Find the key corresponding to this idea to delete it
                     const selectedKey = ideaKeys.find(key => poolData[key] === breakdown.selected_idea);

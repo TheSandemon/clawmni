@@ -157,6 +157,12 @@ app.get('/api/state', async (req, res) => {
                 arms: system.organ_arms_status || 'Offline',
                 nose: system.organ_nose_status || 'Offline'
             },
+            organStats: {
+                id: system.organs?.id || { last_active: null, total_ideations: 0, ideas_generated: 0 },
+                ego: system.organs?.ego || { last_active: null, tasks_created: 0 },
+                arms: system.organs?.arms || { last_active: null, executions: 0, prs_opened: 0 },
+                nose: system.organs?.nose || { last_active: null, audits_run: 0 }
+            },
             chemistry: {
                 cortisol: stateVal.cortisol || 0,
                 dopamine: stateVal.dopamine || 0,

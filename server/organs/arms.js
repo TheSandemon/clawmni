@@ -66,6 +66,10 @@ module.exports = function (db) {
                 timestamp: Date.now()
             });
 
+            // Update organ stats
+            await db.ref('system/organs/arms').update({ last_active: Date.now() });
+            await db.ref('system/organs/arms/executions').transaction(current => (current || 0) + 1);
+
             // Spawn Concurrent Promises (Fingers)
             const fingerPromises = tasksToExecute.map(task => executeFinger(task, octokit, db, REPO_OWNER, REPO_NAME));
 
@@ -111,6 +115,9 @@ async function executeFinger(taskIssue, octokit, db, owner, repo) {
                 message: `Opened PR for task #${taskIssue.number}: ${taskIssue.title}`,
                 timestamp: Date.now()
             });
+
+            // Update organ stats
+            await db.ref('system/organs/arms/prs_opened').transaction(current => (current || 0) + 1);
 
             // Close the EGO TASK issue
             await octokit.issues.update({
