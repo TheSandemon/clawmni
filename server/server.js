@@ -217,6 +217,46 @@ app.post('/api/heart/start', async (req, res) => {
     }
 });
 
+// 4e. Get Ideas Pool
+app.get('/api/ideas', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        const ideasSnap = await db.ref('ideas/pool').once('value');
+        const ideas = ideasSnap.val() || {};
+        // Convert to array for frontend
+        const ideasList = Object.entries(ideas).map(([key, value]) => ({ id: key, text: value }));
+        res.json({ ideas: ideasList });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4f. Clear Ideas Pool
+app.delete('/api/ideas', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        await db.ref('ideas/pool').remove();
+        res.json({ success: true, message: "Ideas pool cleared" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4g. Reset System State (fuel, cortisol, dopamine)
+app.post('/api/state/reset', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        await db.ref('state').update({
+            cortisol: 0,
+            dopamine: 0,
+            fuel_consumed: 0
+        });
+        res.json({ success: true, message: "System state reset" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 5. Config Target Repo
 app.post('/api/config/repo', async (req, res) => {
     if (!db) return res.status(503).json({ error: "Firebase not initialized" });

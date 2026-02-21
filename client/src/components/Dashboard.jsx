@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Activity, BrainCircuit, ShieldAlert, CheckCircle2, Terminal, Github } from 'lucide-react';
+import { Activity, BrainCircuit, ShieldAlert, CheckCircle2, Terminal, Github, Trash2, RefreshCw } from 'lucide-react';
 
 export default function Dashboard() {
     const [db, setDb] = useState(null);
+    const [ideas, setIdeas] = useState([]);
     const [state, setState] = useState({
         system: { heart_status: 'Offline', status_message: 'Connecting to bloodstream...', last_pulse: 0 },
         organs: { id: 'Offline', ego: 'Offline', arms: 'Offline', nose: 'Offline' },
@@ -14,6 +15,7 @@ export default function Dashboard() {
     const [newGoalInput, setNewGoalInput] = useState('');
     const [repoInput, setRepoInput] = useState({ owner: '', repo: '' });
     const [configInput, setConfigInput] = useState({ base_pulse_rate: '', fuel_limit: '', max_tasks: '' });
+    const [ideas, setIdeas] = useState([]);
 
     // Sync config inputs when state loads
     useEffect(() => {
@@ -51,6 +53,12 @@ export default function Dashboard() {
                 if (res.ok && isMounted) {
                     const data = await res.json();
                     setState(data);
+                }
+                // Also fetch ideas
+                const ideasRes = await fetch(`${API_URL}/api/ideas`);
+                if (ideasRes.ok && isMounted) {
+                    const ideasData = await ideasRes.json();
+                    setIdeas(ideasData.ideas || []);
                 }
             } catch (err) {
                 console.error("Dashboard poll failed", err);
@@ -140,6 +148,40 @@ export default function Dashboard() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleResetState = async () => {
+        if (!confirm('Reset system state (fuel, cortisol, dopamine)?')) return;
+        try {
+            await fetch(`${API_URL}/api/state/reset`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleClearIdeas = async () => {
+        try {
+            await fetch(`${API_URL}/api/ideas`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            setIdeas([]);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchIdeas = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/ideas`);
+            const data = await res.json();
+            setIdeas(data.ideas || []);
         } catch (err) {
             console.error(err);
         }
@@ -341,6 +383,58 @@ export default function Dashboard() {
                                 <p className="text-sm text-slate-300 break-words">{state.goals.current}</p>
                             </div>
                         )}
+                    </div>
+
+                    {/* Ideas Pool */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                                <BrainCircuit className="w-4 h-4 mr-2" /> Ideas Pool ({ideas.length})
+                            </h2>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={fetchIdeas}
+                                    className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded transition-colors"
+                                    title="Refresh ideas"
+                                >
+                                    <RefreshCw className="w-3 h-3" />
+                                </button>
+                                <button
+                                    onClick={handleClearIdeas}
+                                    className="p-1.5 bg-slate-800 hover:bg-rose-900 text-slate-400 hover:text-rose-400 rounded transition-colors"
+                                    title="Clear ideas pool"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                </button>
+                            </div>
+                        </div>
+                        {ideas.length === 0 ? (
+                            <p className="text-xs text-slate-500">No ideas in pool. Set a goal to start ideation.</p>
+                        ) : (
+                            <ul className="space-y-2 max-h-48 overflow-y-auto">
+                                {ideas.map((idea, idx) => (
+                                    <li key={idea.id || idx} className="text-xs text-slate-300 bg-slate-950 p-2 rounded border border-slate-800">
+                                        {idea.text}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    {/* System Reset */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs text-slate-400">Reset System State</p>
+                                <p className="text-[10px] text-slate-500">Clear fuel, cortisol, dopamine</p>
+                            </div>
+                            <button
+                                onClick={handleResetState}
+                                className="px-3 py-1.5 bg-rose-900/50 hover:bg-rose-900 text-rose-400 text-xs font-medium rounded transition-colors border border-rose-800"
+                            >
+                                Reset
+                            </button>
+                        </div>
                     </div>
                 </div>
 
