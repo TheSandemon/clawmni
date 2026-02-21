@@ -19,7 +19,6 @@ export default function Dashboard() {
     const [newGoalInput, setNewGoalInput] = useState('');
     const [repoInput, setRepoInput] = useState({ owner: '', repo: '' });
     const [configInput, setConfigInput] = useState({ base_pulse_rate: '', fuel_limit: '', max_tasks: '' });
-    const [ideas, setIdeas] = useState([]);
     const [expandedOrgans, setExpandedOrgans] = useState({});
     const [settings, setSettings] = useState({ theme: 'dark' });
 
@@ -368,7 +367,6 @@ export default function Dashboard() {
                             Pulse
                         </button>
                     </div>
-                </div>
                 </div>
             </div>
 
