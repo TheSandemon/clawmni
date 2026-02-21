@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Activity, BrainCircuit, ShieldAlert, CheckCircle2, Terminal, Github, Trash2, RefreshCw } from 'lucide-react';
+import { Activity, BrainCircuit, ShieldAlert, CheckCircle2, Terminal, Github, Trash2, RefreshCw, GitPullRequest, AlertCircle } from 'lucide-react';
 
 export default function Dashboard() {
     const [db, setDb] = useState(null);
     const [ideas, setIdeas] = useState([]);
+    const [githubData, setGithubData] = useState({ issues: [], prs: [], repo: null });
     const [state, setState] = useState({
         system: { heart_status: 'Offline', status_message: 'Connecting to bloodstream...', last_pulse: 0 },
         organs: { id: 'Offline', ego: 'Offline', arms: 'Offline', nose: 'Offline' },
@@ -59,6 +60,12 @@ export default function Dashboard() {
                 if (ideasRes.ok && isMounted) {
                     const ideasData = await ideasRes.json();
                     setIdeas(ideasData.ideas || []);
+                }
+                // Also fetch GitHub data
+                const ghRes = await fetch(`${API_URL}/api/github/issues`);
+                if (ghRes.ok && isMounted) {
+                    const ghData = await ghRes.json();
+                    setGithubData(ghData);
                 }
             } catch (err) {
                 console.error("Dashboard poll failed", err);
@@ -182,6 +189,18 @@ export default function Dashboard() {
             const res = await fetch(`${API_URL}/api/ideas`);
             const data = await res.json();
             setIdeas(data.ideas || []);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchGithubData = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/github/issues`);
+            if (res.ok) {
+                const data = await res.json();
+                setGithubData(data);
+            }
         } catch (err) {
             console.error(err);
         }
@@ -434,6 +453,67 @@ export default function Dashboard() {
                             >
                                 Reset
                             </button>
+                        </div>
+                    </div>
+
+                    {/* GitHub Issues & PRs */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center">
+                                <Github className="w-4 h-4 mr-2 text-slate-400" />
+                                <span className="text-xs text-slate-400">GitHub ({githubData.repo || 'No repo'})</span>
+                            </div>
+                            <button
+                                onClick={fetchGithubData}
+                                className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded transition-colors"
+                                title="Refresh GitHub data"
+                            >
+                                <RefreshCw className="w-3 h-3" />
+                            </button>
+                        </div>
+                        
+                        {/* Issues */}
+                        <div className="mb-3">
+                            <div className="flex items-center text-xs text-slate-500 mb-1">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Open Issues ({githubData.issues.length})
+                            </div>
+                            {githubData.issues.length === 0 ? (
+                                <p className="text-[10px] text-slate-600">No open issues</p>
+                            ) : (
+                                <ul className="space-y-1 max-h-24 overflow-y-auto">
+                                    {githubData.issues.slice(0, 5).map(issue => (
+                                        <li key={issue.number} className="text-[10px] text-slate-400 truncate">
+                                            <span className="text-indigo-400">#{issue.number}</span> {issue.title}
+                                        </li>
+                                    ))}
+                                    {githubData.issues.length > 5 && (
+                                        <li className="text-[10px] text-slate-500">+{githubData.issues.length - 5} more...</li>
+                                    )}
+                                </ul>
+                            )}
+                        </div>
+
+                        {/* PRs */}
+                        <div>
+                            <div className="flex items-center text-xs text-slate-500 mb-1">
+                                <GitPullRequest className="w-3 h-3 mr-1" />
+                                Open PRs ({githubData.prs.length})
+                            </div>
+                            {githubData.prs.length === 0 ? (
+                                <p className="text-[10px] text-slate-600">No open PRs</p>
+                            ) : (
+                                <ul className="space-y-1 max-h-24 overflow-y-auto">
+                                    {githubData.prs.slice(0, 5).map(pr => (
+                                        <li key={pr.number} className="text-[10px] text-slate-400 truncate">
+                                            <span className="text-emerald-400">PR #{pr.number}</span> {pr.title}
+                                        </li>
+                                    ))}
+                                    {githubData.prs.length > 5 && (
+                                        <li className="text-[10px] text-slate-500">+{githubData.prs.length - 5} more...</li>
+                                    )}
+                                </ul>
+                            )}
                         </div>
                     </div>
                 </div>
