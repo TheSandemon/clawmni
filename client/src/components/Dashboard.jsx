@@ -112,6 +112,17 @@ export default function Dashboard() {
         }
     };
 
+    const handleTriggerPulse = async () => {
+        try {
+            await fetch(`${API_URL}/api/pulse/trigger`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     return (
         <div className="min-h-screen p-6 max-w-7xl mx-auto flex flex-col gap-6">
 
@@ -132,6 +143,13 @@ export default function Dashboard() {
                         <span>Base Pulse: {state.config.base_pulse_rate ? Math.round(state.config.base_pulse_rate / 60000) : 1} min</span>
                         <span className="text-indigo-400">BP: {parseFloat(state.chemistry.blood_pressure).toFixed(2)}x</span>
                     </div>
+                    <button
+                        onClick={handleTriggerPulse}
+                        className="ml-2 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded transition-colors"
+                        title="Trigger manual pulse now"
+                    >
+                        Pulse Now
+                    </button>
                 </div>
             </div>
 

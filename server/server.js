@@ -182,6 +182,18 @@ app.post('/api/goal', async (req, res) => {
     }
 });
 
+// 4b. Trigger Manual Pulse (for testing)
+app.post('/api/pulse/trigger', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        await db.ref('pulse').set(Date.now());
+        await db.ref('pulse_execute').set(Date.now());
+        res.json({ success: true, message: "Manual pulse triggered" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 5. Config Target Repo
 app.post('/api/config/repo', async (req, res) => {
     if (!db) return res.status(503).json({ error: "Firebase not initialized" });
