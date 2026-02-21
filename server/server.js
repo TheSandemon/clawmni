@@ -10,6 +10,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Activity logging helper
+function logActivity(db, type, message) {
+    if (!db) return;
+    db.ref('system/activity').push({
+        type,
+        message,
+        timestamp: Date.now()
+    });
+}
+
 // Initialize Firebase if service account exists
 let db = null;
 const serviceAccountPath = path.join(__dirname, '../firebase-service-account.json');
@@ -328,6 +338,34 @@ app.get('/api/github/issues', async (req, res) => {
         });
     } catch (err) {
         console.error("GitHub API error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4i. Get Activity Log
+app.get('/api/activity', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        const activitySnap = await db.ref('system/activity').once('value');
+        const activity = activitySnap.val() || {};
+        // Convert to array, sorted by timestamp descending, limit to 50
+        const activityList = Object.entries(activity)
+            .map(([key, value]) => ({ id: key, ...value }))
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 50);
+        res.json({ activity: activityList });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4j. Clear Activity Log
+app.delete('/api/activity', async (req, res) => {
+    if (!db) return res.status(503).json({ error: "Firebase not initialized" });
+    try {
+        await db.ref('system/activity').remove();
+        res.json({ success: true, message: "Activity log cleared" });
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });

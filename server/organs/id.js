@@ -91,6 +91,13 @@ module.exports = function (db) {
             }
 
             console.log(`[Id] Successfully pushed ${ideasList.length} ideas to the Firebase bloodstream.`);
+            
+            // Log activity
+            db.ref('system/activity').push({
+                type: 'ideation',
+                message: `Generated ${ideasList.length} ideas for goal: ${shortGoalId}`,
+                timestamp: Date.now()
+            });
 
             // Inject slight Dopamine and consume Fuel
             const dopaRef = db.ref('state/dopamine');

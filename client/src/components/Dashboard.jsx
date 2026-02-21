@@ -6,6 +6,7 @@ export default function Dashboard() {
     const [ideas, setIdeas] = useState([]);
     const [githubData, setGithubData] = useState({ issues: [], prs: [], repo: null });
     const [goalHistory, setGoalHistory] = useState([]);
+    const [activityLog, setActivityLog] = useState([]);
     const [state, setState] = useState({
         system: { heart_status: 'Offline', status_message: 'Connecting to bloodstream...', last_pulse: 0 },
         organs: { id: 'Offline', ego: 'Offline', arms: 'Offline', nose: 'Offline' },
@@ -73,6 +74,12 @@ export default function Dashboard() {
                 if (historyRes.ok && isMounted) {
                     const historyData = await historyRes.json();
                     setGoalHistory(historyData.history || []);
+                }
+                // Also fetch activity log
+                const activityRes = await fetch(`${API_URL}/api/activity`);
+                if (activityRes.ok && isMounted) {
+                    const activityData = await activityRes.json();
+                    setActivityLog(activityData.activity || []);
                 }
             } catch (err) {
                 console.error("Dashboard poll failed", err);
@@ -218,6 +225,28 @@ export default function Dashboard() {
             const res = await fetch(`${API_URL}/api/goals/history`);
             const data = await res.json();
             setGoalHistory(data.history || []);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchActivity = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/activity`);
+            const data = await res.json();
+            setActivityLog(data.activity || []);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleClearActivity = async () => {
+        try {
+            await fetch(`${API_URL}/api/activity`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            setActivityLog([]);
         } catch (err) {
             console.error(err);
         }
@@ -560,6 +589,50 @@ export default function Dashboard() {
                                 </ul>
                             )}
                         </div>
+                    </div>
+
+                    {/* Activity Log */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Activity Log</h2>
+                            <div className="flex space-x-1">
+                                <button
+                                    onClick={fetchActivity}
+                                    className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded transition-colors"
+                                    title="Refresh activity"
+                                >
+                                    <RefreshCw className="w-3 h-3" />
+                                </button>
+                                <button
+                                    onClick={handleClearActivity}
+                                    className="p-1 bg-slate-800 hover:bg-rose-900 text-slate-400 hover:text-rose-400 rounded transition-colors"
+                                    title="Clear activity log"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                </button>
+                            </div>
+                        </div>
+                        {activityLog.length === 0 ? (
+                            <p className="text-xs text-slate-500">No activity yet</p>
+                        ) : (
+                            <ul className="space-y-1 max-h-40 overflow-y-auto">
+                                {activityLog.slice(0, 20).map((entry, idx) => (
+                                    <li key={entry.id || idx} className="text-[10px] text-slate-400">
+                                        <span className="text-slate-600">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                                        <span className={`ml-2 px-1 rounded ${
+                                            entry.type === 'pr' ? 'bg-emerald-900/50 text-emerald-400' :
+                                            entry.type === 'task' ? 'bg-blue-900/50 text-blue-400' :
+                                            entry.type === 'execution' ? 'bg-amber-900/50 text-amber-400' :
+                                            entry.type === 'ideation' ? 'bg-indigo-900/50 text-indigo-400' :
+                                            'bg-slate-800 text-slate-400'
+                                        }`}>
+                                            {entry.type}
+                                        </span>
+                                        <span className="ml-1 text-slate-300">{entry.message}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 </div>
 
